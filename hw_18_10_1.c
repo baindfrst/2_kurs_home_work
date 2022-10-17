@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 int file_size(int fd)
 {
@@ -11,21 +12,8 @@ int file_size(int fd)
     {
         len++;
     }
-    lseek(fd, 0, SEEK_CUR);
+    lseek(fd, 0, SEEK_SET);
     return len;
-}
-
-void print_file(int fd)
-{
-    char readed;
-    int rez;
-    while ((rez = read(fd, &readed, sizeof(char))) > 0)
-    {
-        putchar(readed);
-        printf("%d", rez);
-    }
-    lseek(fd, 0, SEEK_CUR);
-    printf("\n");
 }
 
 int main(int argc, char** argv)
@@ -63,16 +51,21 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    print_file(fd);
-    char reading[N];
-    for (int i = 1; i != (file_size_cur/N) + 1; i++)
+    int les = file_size_cur - (file_size_cur / N) * N;
+    char* reading = malloc(sizeof(sizeof(char) * les));
+    lseek(fd, -les, SEEK_END);
+    read(fd, reading, les);
+    lseek(fd, 2 * (file_size_cur - les), SEEK_SET);
+    write(fd, reading, les);
+    reading = realloc(reading, N);
+    for (int i = 1; i != (file_size_cur / N) + 1; i++)
     {
-        read(fd, &reading, N);
-        lseek(fd, file_size_cur + N * (i-1), SEEK_CUR);
-        write(fd, &reading, N);
-        lseek(fd, N * i, SEEK_CUR);
+        lseek(fd, file_size_cur - les - N*i, SEEK_SET);
+        read(fd, reading, N);
+        lseek(fd, 2 * (file_size_cur - les - N*i), SEEK_SET);
+        write(fd, reading, N);
+        write(fd, reading, N);
     }
-    print_file(fd);
     close(fd);
     return 0;
 }
